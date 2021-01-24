@@ -1,0 +1,10 @@
+
+
+- Database:
+    db_type: mssql+pyodbc
+    driver: '{SQL SERVER}'
+    server: DESKTOP-BMEMTUQ\SQLEXPRESS
+    database: STATCAST
+
+- Paths:
+    parent_path: C:/Users/okiem/OneDrive/Desktop/Data Science Projects/Statcast/
