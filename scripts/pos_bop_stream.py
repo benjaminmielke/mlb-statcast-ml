@@ -2,6 +2,7 @@ import pandas as pd
 import datetime
 import pickle
 import yaml
+import json
 
 
 def create_dct_bop():
@@ -35,9 +36,10 @@ def create_dct_bop():
 
     playeridmap = pd.read_csv('https://www.smartfantasybaseball.com/PLAYERIDMAPCSV', nrows=20)
 
-    infile = open(filename, 'rb')
-    dct_bop_2021 = pickle.load(infile)
-    infile.close()
+    # infile = open(filename, 'rb')
+    # dct_bop_2021 = pickle.load(infile)
+    # infile.close()
+    dct_bop_2021 = json.load(open(f'dct_bop_{year}.txt'))
 
     print('dct/n')
     print(dct_bop_2021)
@@ -53,8 +55,8 @@ def create_dct_bop():
                 print(f'{dct_brefid_name.get(lst_brefid[p])}:{year}: Table Not Found: https://www.baseball-reference.com/players/gl.fcgi?id={lst_brefid[p]}&t=b&year={year}')
                 continue
 
-            df.drop(df.index[0:-3], inplace=True)
-            df.drop(df.index[-2:], inplace=True)
+            df.drop(df.index[0:-2], inplace=True)
+            df.drop(df.index[-1], inplace=True)
             print(df)
 
             df['Date'] = df.Date.map(str) + " " + year
