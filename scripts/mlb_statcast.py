@@ -58,6 +58,8 @@ class Statcast_DB():
         print('To Build an initial Database, call build_db()')
         print('To append date(s) into Database, call stream_data("yyyy-mm-dd")')
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     def get_variables_mssql(self):
         '''A method for the button in the prompt window to call that retreives the entry
         values for the database information.
@@ -77,6 +79,8 @@ class Statcast_DB():
         self.database = self.entry_d.get()
         self.connect_db()
         self.window.destroy()
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def get_variables_mysql(self):
         '''A method for the button in the prompt window to call that retreives the entry
@@ -98,6 +102,8 @@ class Statcast_DB():
         self.database = self.entry_d.get()
         self.connect_db()
         self.window.destroy()
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def mssql_window(self):
         '''Opens a prompt window for the user to enter the MSSQL Server database information that
@@ -178,6 +184,8 @@ class Statcast_DB():
 
         self.window.eval('tk::PlaceWindow . center')
         self.window.mainloop()
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def mysql_window(self):
         '''Opens a prompt window for the user to enter the MySQL database information that
@@ -272,6 +280,8 @@ class Statcast_DB():
         self.window.eval('tk::PlaceWindow . center')
         self.window.mainloop()
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     def prompt_window(self):
         '''
 
@@ -315,6 +325,8 @@ class Statcast_DB():
         self.window.eval('tk::PlaceWindow . center')
         self.window.mainloop()
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     def connect_db(self):
         '''Connects and creates an engine for the SQL Database specified
         by the user.
@@ -357,6 +369,8 @@ class Statcast_DB():
 
         self.df = self.df[lst_reorder_columns]
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     def rename_columns(self):
         '''Renames the columns to be cleaner and add descriptive value.
 
@@ -376,6 +390,8 @@ class Statcast_DB():
             lst_rename_columns = [line[:-1] for line in filehandler]
 
         self.df.columns = lst_rename_columns
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def add_batter_name(self):
         '''Adds a column that contains the batters full name.
@@ -398,6 +414,8 @@ class Statcast_DB():
         self.df.insert(self.df.columns.get_loc('Pitcher_ID'),
                        'Batter_Name',
                        lst_batter_name)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def add_player_names(self):
         '''Replaces the MLB IDs with Player Full Names in all the Fielder_* columns and
@@ -422,6 +440,8 @@ class Statcast_DB():
         for c in range(0, len(lst_cols)):
             new_col = [self.dct_playerIDs.get(x, None) for x in self.df[lst_cols[c]]]
             self.df[lst_cols[c]] = new_col
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def add_teams(self):
         '''Adds columns that show the Batting and Fielding Teams.
@@ -458,6 +478,8 @@ class Statcast_DB():
                        'Fld_Team',
                        lst_fld_team)
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     def add_lg_div(self):
         '''Adds columns that show the league and division for the
         pitcher and batter teams.
@@ -492,6 +514,8 @@ class Statcast_DB():
                        'Fld_Team_Division',
                        lst_fld_division)
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     def add_ballparks(self, year):
         '''Adds a column that shows the ball park.
 
@@ -511,6 +535,8 @@ class Statcast_DB():
         self.df.insert(self.df.columns.get_loc('Home_Score'),
                        'Ball_Park',
                        lst_parks)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def add_batter_pos(self):
         '''Adds a column that shows what position the batter was playing
@@ -538,6 +564,8 @@ class Statcast_DB():
         self.df.insert(self.df.columns.get_loc('Home_Team'),
                        'Batter_Pos',
                        lst_hitter_pos)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def add_batter_bop(self):
         '''Adds a column that shows what position in the batter order
