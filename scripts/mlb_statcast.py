@@ -50,7 +50,7 @@ class Statcast_DB():
                                      dtype={'MLBID': 'category', 'MLBNAME': 'category'},
                                      skiprows=[2604+1])
         self.dct_playerIDs = dict(zip(self.playerMap.MLBID.astype(float), self.playerMap.MLBNAME))
-        self.team_atts = pd.read_csv(f'{self.parent_path}csv/team_atts.csv')
+        self.team_atts = pd.read_csv(f'{self.parent_path}/csv/team_atts.csv')
         self.dct_team_league = dict(zip(self.team_atts.Team, self.team_atts.League))
         self.dct_team_division = dict(zip(self.team_atts.Team, self.team_atts.Division))
 
@@ -58,7 +58,7 @@ class Statcast_DB():
         print('To Build an initial Database, call build_db()')
         print('To append date(s) into Database, call stream_data("yyyy-mm-dd")')
 
-    def get_variables(self):
+    def get_variables_mssql(self):
         '''A method for the button in the prompt window to call that retreives the entry
         values for the database information.
 
@@ -71,15 +71,36 @@ class Statcast_DB():
         Raises:
             No exceptions
         '''
-        self.dbtype = self.entry_a.get()
+        self.dbtype = 'mssql'
         self.driver = self.entry_b.get()
         self.server = self.entry_c.get()
         self.database = self.entry_d.get()
-        self.connect()
+        self.connect_db()
         self.window.destroy()
 
-    def prompt_window(self):
-        '''Opens a prompt window for the user to enter the SQL database information that
+    def get_variables_mysql(self):
+        '''A method for the button in the prompt window to call that retreives the entry
+        values for the database information.
+
+        Args:
+            No arguments
+
+        Returns:
+            Does not return a parameter
+
+        Raises:
+            No exceptions
+        '''
+        self.dbtype = 'mysql'
+        self.username = self.entry_a.get()
+        self.password = self.entry_b.get()
+        self.server = self.entry_c.get()
+        self.database = self.entry_d.get()
+        self.connect_db()
+        self.window.destroy()
+
+    def mssql_window(self):
+        '''Opens a prompt window for the user to enter the MSSQL Server database information that
         will be used for the data to be entered into.
 
         Args:
@@ -91,39 +112,29 @@ class Statcast_DB():
         Raises:
             No exceptions
         '''
+        self.window.destroy()
         self.window = tk.Tk()
-        self.window.geometry('500x150')
+        self.window.geometry('500x180')
         self.window.config(bg='#0E4B95')
-        self.window.title('PLEASE ENTER MSSQL DATABASE INFO')
+        self.window.title('MLB StatCast DB Builder')
 
         frame_m = tk.Frame(master=self.window, width=400, height=25)
         frame_m.pack()
-        frame_a = tk.Frame(master=self.window, width=400, height=25)
-        frame_a.pack(pady=2)
         frame_b = tk.Frame(master=self.window, width=400, height=25)
         frame_b.pack(pady=2)
         frame_c = tk.Frame(master=self.window, width=400, height=25)
         frame_c.pack(pady=2)
         frame_d = tk.Frame(master=self.window, width=400, height=25)
         frame_d.pack(pady=2)
+        frame_e = tk.Frame(master=self.window, width=400, height=25)
+        frame_e.pack(pady=2)
 
         label_m = tk.Label(master=frame_m,
-                           text='Welcome to the MLB StatCast Database Builder!',
+                           text='Enter MSSQL Server Database Information',
                            fg='white',
                            pady=5,
                            bg='#0E4B95')
         label_m.pack()
-
-        label_a = tk.Label(master=frame_a,
-                           text='Enter Database Type:',
-                           relief=tk.SUNKEN,
-                           padx=2)
-        label_a.pack(side='left')
-        self.entry_a = tk.Entry(master=frame_a,
-                                width='50',
-                                fg='#9F0808')
-        self.entry_a.pack(side='right')
-        self.entry_a.insert(0, 'mssql+pyodbc')
 
         label_b = tk.Label(master=frame_b,
                            text='Enter Driver:',
@@ -158,8 +169,9 @@ class Statcast_DB():
         self.entry_d.pack(side='right')
         self.entry_d.insert(0, 'STATCAST')
 
-        button_get = tk.Button(text='CONNECT and BUILD',
-                               command=self.get_variables,
+        button_get = tk.Button(master=frame_e,
+                               text='CONNECT and BUILD',
+                               command=self.get_variables_mssql,
                                bg='#9F0808',
                                fg='white')
         button_get.pack(pady=3)
@@ -167,11 +179,143 @@ class Statcast_DB():
         self.window.eval('tk::PlaceWindow . center')
         self.window.mainloop()
 
-    def finished_window(self):
-        pass
+    def mysql_window(self):
+        '''Opens a prompt window for the user to enter the MySQL database information that
+        will be used for the data to be entered into.
 
+        Args:
+            No arguments
 
-    def connect(self):
+        Returns:
+            Does not return a parameter
+
+        Raises:
+            No exceptions
+        '''
+        self.window.destroy()
+        self.window = tk.Tk()
+        self.window.geometry('500x180')
+        self.window.config(bg='#0E4B95')
+        self.window.title('MLB StatCast DB Builder')
+
+        frame_m = tk.Frame(master=self.window, width=400, height=25)
+        frame_m.pack()
+        frame_a = tk.Frame(master=self.window, width=400, height=25)
+        frame_a.pack(pady=2)
+        frame_b = tk.Frame(master=self.window, width=400, height=25)
+        frame_b.pack(pady=2)
+        frame_c = tk.Frame(master=self.window, width=400, height=25)
+        frame_c.pack(pady=2)
+        frame_d = tk.Frame(master=self.window, width=400, height=25)
+        frame_d.pack(pady=2)
+        frame_e = tk.Frame(master=self.window, width=400, height=25)
+        frame_e.pack(pady=2)
+
+        label_m = tk.Label(master=frame_m,
+                           text='Enter MySQL Database Information',
+                           fg='white',
+                           pady=5,
+                           bg='#0E4B95')
+        label_m.pack()
+
+        label_a = tk.Label(master=frame_a,
+                           text='Enter Username:',
+                           relief=tk.SUNKEN,
+                           padx=2)
+        label_a.pack(side='left')
+        self.entry_a = tk.Entry(master=frame_a,
+                                width='50',
+                                fg='#9F0808')
+        self.entry_a.pack(side='right')
+        self.entry_a.insert(0, 'root')
+
+        label_b = tk.Label(master=frame_b,
+                           text='Enter Password:',
+                           relief=tk.SUNKEN,
+                           padx=2)
+        label_b.pack(side='left')
+        self.entry_b = tk.Entry(master=frame_b,
+                                width='50',
+                                fg='#9F0808')
+        self.entry_b.pack(side='right')
+        self.entry_b.insert(0, 'Hh6994hh!')
+
+        label_c = tk.Label(master=frame_c,
+                           text='Enter Sever:',
+                           relief=tk.SUNKEN,
+                           padx=2)
+        label_c.pack(side='left')
+        self.entry_c = tk.Entry(master=frame_c,
+                                width='50',
+                                fg='#9F0808')
+        self.entry_c.pack(side='right')
+        self.entry_c.insert(0, 'localhost')
+
+        label_d = tk.Label(master=frame_d,
+                           text='Enter Database:',
+                           relief=tk.SUNKEN,
+                           padx=2)
+        label_d.pack(side='left')
+        self.entry_d = tk.Entry(master=frame_d,
+                                width='50',
+                                fg='#9F0808')
+        self.entry_d.pack(side='right')
+        self.entry_d.insert(0, 'statcast')
+
+        button_get = tk.Button(master=frame_e,
+                               text='CONNECT and BUILD',
+                               command=self.get_variables_mysql,
+                               bg='#9F0808',
+                               fg='white')
+        button_get.pack(pady=3)
+
+        self.window.eval('tk::PlaceWindow . center')
+        self.window.mainloop()
+
+    def prompt_window(self):
+        '''
+
+        Args:
+            No arguments
+
+        Returns:
+            Does not return a parameter
+
+        Raises:
+            No exceptions
+        '''
+        self.window = tk.Tk()
+        self.window.geometry('500x150')
+        self.window.config(bg='#0E4B95')
+        self.window.title('MLB StatCast DB Builder')
+
+        frame_a = tk.Frame(master=self.window, width=400, height=25)
+        frame_a.pack()
+        frame_b = tk.Frame(master=self.window, width=400, height=25)
+        frame_b.pack(pady=2)
+
+        label_a = tk.Label(master=frame_a,
+                           text='Welcome to the MLB StatCast Database Builder!\nWhat type of database are you building?',
+                           pady=3)
+        label_a.pack()
+
+        button_mssql = tk.Button(master=frame_b,
+                                 text='MSSQL Server',
+                                 command=self.mssql_window,
+                                 bg='#9F0808',
+                                 fg='white')
+        button_mssql.pack(padx=2, side='left')
+        button_mysql = tk.Button(master=frame_b,
+                                 text='MySQL',
+                                 command=self.mysql_window,
+                                 bg='#9F0808',
+                                 fg='white')
+        button_mysql.pack(padx=2, side='right')
+
+        self.window.eval('tk::PlaceWindow . center')
+        self.window.mainloop()
+
+    def connect_db(self):
         '''Connects and creates an engine for the SQL Database specified
         by the user.
 
@@ -184,8 +328,11 @@ class Statcast_DB():
         Raises:
             No exceptions
         '''
-        params = urllib.parse.quote_plus(f"DRIVER={self.driver};SERVER={self.server};DATABASE={self.database}")
-        self.engine = create_engine(f"{self.dbtype}:///?odbc_connect=%s" % params)
+        if self.dbtype == 'mssql':
+            params = urllib.parse.quote_plus(f"DRIVER={self.driver};SERVER={self.server};DATABASE={self.database}")
+            self.engine = create_engine(f"mssql+pyodbc:///?odbc_connect=%s" % params)
+        if self.dbtype == 'mysql':
+            self.engine = create_engine(f'mysql+pymysql://{self.username}:{self.password}@{self.server}/{self.database}').connect()
 
     def reorder_columns(self):
         '''Reorders the columns in the dataframe into a logical order.
@@ -205,7 +352,7 @@ class Statcast_DB():
         Raises:
             No exceptions
         '''
-        with open(f'{self.parent_path}lists/lst_reorder_cols.txt', 'r') as filehandler:
+        with open(f'{self.parent_path}/lists/lst_reorder_cols.txt', 'r') as filehandler:
             lst_reorder_columns = [line[:-1] for line in filehandler]
 
         self.df = self.df[lst_reorder_columns]
@@ -225,7 +372,7 @@ class Statcast_DB():
         Raises:
             No exceptions
         '''
-        with open(f'{self.parent_path}lists/lst_rename_cols.txt', 'r') as filehandler:
+        with open(f'{self.parent_path}/lists/lst_rename_cols.txt', 'r') as filehandler:
             lst_rename_columns = [line[:-1] for line in filehandler]
 
         self.df.columns = lst_rename_columns
@@ -449,7 +596,7 @@ class Statcast_DB():
         startTime = datetime.now()
 
 
-        logging.basicConfig(filename=f'{self.parent_path}logs/build_db.log',
+        logging.basicConfig(filename=f'{self.parent_path}/logs/build_db.log',
                             filemode='w',
                             format='%(asctime)s - %(levelname)s - %(message)s',
                             datefmt='%d-%b-%y %H:%M:%S',
@@ -474,8 +621,8 @@ class Statcast_DB():
 
 
         for y in range(0, len(lst_year)):
-            self.dct_pos = json.load(open(f'{self.parent_path}dicts/dct_bop_{lst_year[y]}.txt'))
-            self.dct_bop = json.load(open(f'{self.parent_path}dicts/dct_pos_{lst_year[y]}.txt'))
+            self.dct_pos = json.load(open(f'{self.parent_path}/dicts/dct_bop_{lst_year[y]}.txt'))
+            self.dct_bop = json.load(open(f'{self.parent_path}/dicts/dct_pos_{lst_year[y]}.txt'))
             self.dct_parks = dict(zip(self.team_atts.Team, self.team_atts[f'Ball_Park_{lst_year[y]}']))
 
             for m in range(0, len(lst_month)):
@@ -566,7 +713,7 @@ class Statcast_DB():
         Raises:
             No exceptions
         '''
-        logging.basicConfig(filename=f'{self.parent_path}logs/stream_data.log',
+        logging.basicConfig(filename=f'{self.parent_path}/logs/stream_data.log',
                             filemode='w',
                             format='%(asctime)s - %(levelname)s - %(message)s',
                             datefmt='%d-%b-%y %H:%M:%S',
