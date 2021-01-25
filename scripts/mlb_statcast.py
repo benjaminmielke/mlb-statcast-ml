@@ -621,7 +621,7 @@ class Statcast_DB():
                 self.add_player_names()
                 self.add_teams()
                 self.add_lg_div()
-                self.add_ballparks(self.df['Game_Date'][0])
+                self.add_ballparks(self.df['Game_Year'][0])
                 print(f'Completed: Data transformation')
                 logging.info(f'{date}: Data transformation complete')
             except:
