@@ -172,8 +172,8 @@ def create_dct_pos():
             lst_df_year[y]['Date'] = lst_df_year[y]['Date'].str.replace('susp', '', regex=False)
 
             for i in range(0, len(lst_df_year[y]['Date'])):
-                lst_df_year[y]['Date'][i] = datetime.datetime.strptime(lst_df_year[y]['Date'][i], '%b %d %Y').strftime('%Y-%m-%d')
-            lst_dct_pos_year[y].update({dct_brefid_name.get(lst_brefid[p]): dict(zip(lst_df_year[y].Date, lst_df_year[y].Pos))})
+                lst_df_year[y].loc[i, 'Date'] = datetime.datetime.strptime(lst_df_year[y].loc[i, 'Date'], '%b %d %Y').strftime('%Y-%m-%d')
+            lst_dct_pos_year[y].update({dct_brefid_name.get(lst_brefid[p]): dict(zip(lst_df_year[y]['Date'], lst_df_year[y]['Pos']))})
             lst_df_year[y] = []
 
     json.dump(lst_dct_pos_year[y], open(f'{parent_path}dicts/dct_pos_{lst_year[y]}_test.txt', 'w'))
