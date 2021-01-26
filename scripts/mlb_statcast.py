@@ -49,10 +49,10 @@ class Statcast_DB():
                                      usecols=['MLBID', 'MLBNAME', 'BREFID', 'POS', 'PLAYERNAME'],
                                      dtype={'MLBID': 'category', 'MLBNAME': 'category'},
                                      skiprows=[2604+1])
-        self.dct_playerIDs = dict(zip(self.playerMap.MLBID.astype(float), self.playerMap.MLBNAME))
+        self.dct_playerIDs = dict(zip(self.playerMap['MLBID'].astype(float), self.playerMap['MLBNAME']))
         self.team_atts = pd.read_csv(f'{self.parent_path}/csv/team_atts.csv')
-        self.dct_team_league = dict(zip(self.team_atts.Team, self.team_atts.League))
-        self.dct_team_division = dict(zip(self.team_atts.Team, self.team_atts.Division))
+        self.dct_team_league = dict(zip(self.team_atts['Team'], self.team_atts['League']))
+        self.dct_team_division = dict(zip(self.team_atts['Team'], self.team_atts['Division']))
 
 
         print('To Build an initial Database, call build_db()')
@@ -651,7 +651,7 @@ class Statcast_DB():
         for y in range(0, len(lst_year)):
             self.dct_pos = json.load(open(f'{self.parent_path}/dicts/dct_bop_{lst_year[y]}.txt'))
             self.dct_bop = json.load(open(f'{self.parent_path}/dicts/dct_pos_{lst_year[y]}.txt'))
-            self.dct_parks = dict(zip(self.team_atts.Team, self.team_atts[f'Ball_Park_{lst_year[y]}']))
+            self.dct_parks = dict(zip(self.team_atts['Team'], self.team_atts[f'Ball_Park_{lst_year[y]}']))
 
             for m in range(0, len(lst_month)):
                 if any(lst_month[m] == x for x in ['03', '05', '07', '08', '10']):
@@ -766,7 +766,7 @@ class Statcast_DB():
             logging.exception("Exception occurred")
 
         self.df = self.df.replace({np.nan: None})
-        self.dct_parks = dict(zip(self.team_atts.Team, self.team_atts[f'Ball_Park_{int(self.df.game_year.loc[1])}']))
+        self.dct_parks = dict(zip(self.team_atts['Team'], self.team_atts[f'Ball_Park_{int(self.df['game_year'].loc[1])}']))
 
         if self.df.empty:
             print(f'{date}: NO DATA FOR THIS DATE')
@@ -781,12 +781,12 @@ class Statcast_DB():
                 self.df.drop(['pitcher.1', 'fielder_2.1'],
                              axis=1,
                              inplace=True)
-                self.df.to_sql(f'testing_RAW_{int(self.df.game_year.loc[1])}',
+                self.df.to_sql(f'testing_RAW_{int(self.df['game_year'].loc[1])}',
                                self.engine,
                                index=False,
                                if_exists='append')
-                print(f'Completed: Raw data inserted into DB: STATCAST , TABLE: testing_RAW_{int(self.df.game_year.loc[1])}')
-                logging.info(f'{date}: Raw data inserted into DB: STATCAST , TABLE: testing_RAW_{int(self.df.game_year.loc[1])}')
+                print(f'Completed: Raw data inserted into DB: STATCAST , TABLE: testing_RAW_{int(self.df[game_year].loc[1])}')
+                logging.info(f'{date}: Raw data inserted into DB: STATCAST , TABLE: testing_RAW_{int(self.df['game_year'].loc[1])}')
             except Exception as e:
                 logging.exception("Exception occurred")
             try:
@@ -803,13 +803,13 @@ class Statcast_DB():
                 logging.exception("Exception occurred")
 
             try:
-                self.df.to_sql(f'testing_WRK_{int(self.df.Game_Year.loc[1])}',
+                self.df.to_sql(f'testing_WRK_{int(self.df['Game_Year'].loc[1])}',
                                self.engine,
                                index=False,
                                if_exists='append')
                 print(f'Completed: Working data inserted into DB: STATCAST , TABLE: testing_WRK_{int(self.df.Game_Year.loc[1])}\n')
                 logging.info(f'''{date}: Working data inserted into DB: STATCAST , TABLE:
-                              testing_WRK_{int(self.df.Game_Year.loc[1])}\nTime Elapsed: {datetime.now() - startTime}''')
+                              testing_WRK_{int(self.df['Game_Year'].loc[1])}\nTime Elapsed: {datetime.now() - startTime}''')
             except Exception as e:
                 logging.exception("Exception occurred")
 
