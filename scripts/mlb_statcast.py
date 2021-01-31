@@ -9,7 +9,7 @@ from pybaseball import statcast
 from datetime import datetime
 import tkinter as tk
 import logging
-import json
+import ujson
 import yaml
 
 
@@ -44,7 +44,7 @@ class Statcast_DB():
         with open('config.yaml', 'r') as yamlfile:
             self.lst_config = yaml.load(yamlfile, Loader=yaml.FullLoader)
 
-        self.parent_path = self.lst_config[1]['Paths']['parent_path']
+        self.parent_path = self.lst_config[3]['Paths']['parent_path']
         self.playerMap = pd.read_csv('https://www.smartfantasybaseball.com/PLAYERIDMAPCSV',
                                      usecols=['MLBID', 'MLBNAME', 'BREFID', 'POS', 'PLAYERNAME'],
                                      dtype={'MLBID': 'category', 'MLBNAME': 'category'},
@@ -341,10 +341,22 @@ class Statcast_DB():
             No exceptions
         '''
         if self.dbtype == 'mssql':
+            self.driver = self.lst_config[1]['DB_MSSQL']['driver']
+            self.server = self.lst_config[1]['DB_MSSQL']['server']
+            self.database = self.lst_config[1]['DB_MSSQL']['database']
             params = urllib.parse.quote_plus(f"DRIVER={self.driver};SERVER={self.server};DATABASE={self.database}")
+
             self.engine = create_engine(f"mssql+pyodbc:///?odbc_connect=%s" % params)
+
         if self.dbtype == 'mysql':
+            self.username = self.lst_config[2]['DB_MySQL']['username']
+            self.password = self.lst_config[2]['DB_MySQL']['password']
+            self.server = self.lst_config[2]['DB_MySQL']['server']
+            self.database = self.lst_config[2]['DB_MySQL']['database']
+
             self.engine = create_engine(f'mysql+pymysql://{self.username}:{self.password}@{self.server}/{self.database}').connect()
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def reorder_columns(self):
         '''Reorders the columns in the dataframe into a logical order.
@@ -595,6 +607,108 @@ class Statcast_DB():
                        'Batter_BOP',
                        lst_hitter_bop)
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def stream_pos_bop_dct(self, date):
+        '''
+        Create dictionary json files for each year containing which field position
+         a player was playing for each date in their career.
+
+        This function uses a MLB PlayerID Map and baseball-reference.com game-logs
+        to create yearly dictionaries containing which field position a player was
+        playing for each game in their career. The function scrapes data from
+        the baseball-reference.com game logs for each player then parses and
+        converts the data into the form neccessary to use in a Statcast Databse.
+
+        Example of an entry into a dictionary:
+        {"Jose Abreu": {"2020-07-24": "3", "2020-07-25": "3" ...
+
+        Args:
+            No arguments.
+
+        Returns:
+            list: a list of each years dictionary
+
+        '''
+        with open('config.yaml', 'r') as yamlfile:
+            lst_config = yaml.load(yamlfile, Loader=yaml.FullLoader)
+        parent_path = lst_config[3]['Paths']['parent_path']
+
+        # date = (datetime.now()-timedelta(1)).strftime('%Y-%m-%d')
+        # date = '2019-06-03'
+        year = date[:4]
+
+        self.dct_pos = {}
+        self.dct_bop = {}
+
+        filename_pos = f'{parent_path}/dicts/dct_pos_2021_test.txt'
+        filename_bop = f'{parent_path}/dicts/dct_bop_2021_test.txt'
+
+        playeridmap = pd.read_csv('https://www.smartfantasybaseball.com/PLAYERIDMAPCSV')
+
+        try:
+            self.dct_pos = ujson.load(open(filename_pos))
+        except ValueError:
+            print('The Pos text file is empty.')
+        try:
+            self.dct_bop = ujson.load(open(filename_bop))
+        except ValueError:
+            print('The BOP text file is empty.')
+
+        playeridmap_hitters = playeridmap.drop(playeridmap[playeridmap['POS'].str.contains('P')].index)
+        playeridmap_hitters = playeridmap.drop(playeridmap[playeridmap['ACTIVE'].str.contains('N')].index)
+        playeridmap_hitters = playeridmap_hitters.reset_index(drop=True)
+        dct_brefid_name = dict(zip(playeridmap_hitters['BREFID'], playeridmap_hitters['PLAYERNAME']))
+        lst_brefid = playeridmap_hitters['BREFID']
+        for p in range(0, len(lst_brefid)):
+            try:
+                df = pd.read_html(f'https://www.baseball-reference.com/players/gl.fcgi?id={lst_brefid[p]}&t=b&year={year}')[4][['Date', 'BOP', 'Pos']]
+            except:
+                print(f'Table Not Found: {dct_brefid_name.get(lst_brefid[p])}:{year}: https://www.baseball-reference.com/players/gl.fcgi?id={lst_brefid[p]}&t=b&year={year}')
+                continue
+
+            df.drop(df.index[0:-2], inplace=True)
+            df.drop(df.index[-1], inplace=True)
+
+            df['Date'] = df.Date.map(str) + " " + year
+            df.drop(df[df['Date'].str.contains('Date')].index, inplace=True)
+            df.drop(df[df['Date'].str.contains('nan')].index, inplace=True)
+            df = df.reset_index(drop=True)
+
+            df['Date'] = df['Date'].str.replace('(1)', '', regex=False)
+            df['Date'] = df['Date'].str.replace('(2)', '', regex=False)
+            df['Date'] = df['Date'].str.replace('susp', '', regex=False)
+            df.loc[0, 'Date'] = datetime.strptime(df.loc[0, 'Date'], '%b %d %Y').strftime('%Y-%m-%d')
+
+            print(df.loc[0, 'Date'])
+            print(date)
+
+            if df.loc[0, 'Date'] == date:
+                if dct_brefid_name.get(lst_brefid[p]) in self.dct_pos:
+                    self.dct_pos.get(dct_brefid_name.get(lst_brefid[p])).update(dict(zip(df['Date'], df['Pos'])))
+                    print(f'Updated Pos: {dct_brefid_name.get(lst_brefid[p])}: entry updated for {date}')
+                else:
+                    self.dct_pos.update({dct_brefid_name.get(lst_brefid[p]): dict(zip(df['Date'], df['Pos']))})
+                    print(f'Inserted Pos: {dct_brefid_name.get(lst_brefid[p])}: new entry inserted for {date}')
+
+                if dct_brefid_name.get(lst_brefid[p]) in self.dct_bop:
+                    self.dct_bop.get(dct_brefid_name.get(lst_brefid[p])).update(dict(zip(df['Date'], df['BOP'])))
+                    print(f'Updated BOP: {dct_brefid_name.get(lst_brefid[p])}: entry updated for {date}')
+                else:
+                    self.dct_bop.update({dct_brefid_name.get(lst_brefid[p]): dict(zip(df['Date'], df['BOP']))})
+                    print(f'Inserted BOP: {dct_brefid_name.get(lst_brefid[p])}: new entry inserted for {date}')
+            else:
+                print(f'DNP: {dct_brefid_name.get(lst_brefid[p])}: Did not play {date}')
+
+        ujson.dump(self.dct_pos, open(filename_pos, 'w'))
+        ujson.dump(self.dct_bop, open(filename_bop, 'w'))
+
+        print(f'Pos Dictionary Completed for {date}')
+        print(f'BOP Dictionary Completed for {date}')
+
+        return self.dct_pos, self.dct_bop
+
+
 # ------------------------------------------------------------------------------
 # ++++++++++++++Builder Method+++++++++++++++++++++++++++++++++++++++++++++++++
 # -----------------------------------------------------------------------------
@@ -682,12 +796,12 @@ class Statcast_DB():
                             self.df.drop(['pitcher.1', 'fielder_2.1'],
                                          axis=1,
                                          inplace=True)
-                            self.df.to_sql(f'testing_RAW_{lst_year[y]}',
+                            self.df.to_sql(f'raw_statcast_{lst_year[y]}',
                                            self.engine,
                                            index=False,
                                            if_exists='append')
-                            print(f'Completed: Raw data inserted into DB: STATCAST , TABLE: testing_RAW_{lst_year[y]}')
-                            logging.info(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: Raw data inserted into DB: STATCAST , TABLE: testing_RAW_{lst_year[y]}')
+                            print(f'Completed: Raw data inserted into DB: STATCAST , TABLE: raw_statcast_{lst_year[y]}')
+                            logging.info(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: Raw data inserted into DB: STATCAST , TABLE: raw_statcast_{lst_year[y]}')
                         except Exception as e:
                             logging.exception("Exception occurred")
 
@@ -707,13 +821,13 @@ class Statcast_DB():
                             logging.exception('Exception Occured')
 
                         try:
-                            self.df.to_sql(f'testing_WRK_{lst_year[y]}',
+                            self.df.to_sql(f'wrk_statcast_{lst_year[y]}',
                                            self.engine,
                                            index=False,
                                            if_exists='append')
-                            print(f'Completed: Working data inserted into DB: STATCAST , TABLE: testing_RAW_{lst_year[y]}')
+                            print(f'Completed: Working data inserted into DB: STATCAST , TABLE: wrk_statcast_{lst_year[y]}')
                             print(f'Time Elapsed: {datetime.now() - startTime}\n')
-                            logging.info(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: Working data inserted into DB: STATCAST , TABLE: testing_WRK_{lst_year[y]}\nTime Elapsed: {datetime.now() - startTime}')
+                            logging.info(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: Working data inserted into DB: STATCAST , TABLE: wrk_statcast_{lst_year[y]}\nTime Elapsed: {datetime.now() - startTime}')
                         except Exception as e:
                             logging.exception("Exception occurred")
 
@@ -749,15 +863,15 @@ class Statcast_DB():
 
         startTime = datetime.now()
 
-        self.dbtype = self.lst_config[0]['Database']['db_type']
-        self.driver = self.lst_config[0]['Database']['driver']
-        self.server = self.lst_config[0]['Database']['server']
-        self.database = self.lst_config[0]['Database']['database']
-
-        params = urllib.parse.quote_plus(f"DRIVER={self.driver};SERVER={self.server};DATABASE={self.database}")
-        self.engine = create_engine(f"{self.dbtype}:///?odbc_connect=%s" % params)
-        print(f'Connected to: \nServer: {self.server}\nDatabase: {self.database}')
-        logging.info(f'\nConnection Successful \nServer: {self.server}\nDatabase: {self.database}')
+        self.dbtype = self.lst_config[0]['Database_System']['db_type']
+        self.connect_db()
+        try:
+            self.engine.connect()
+            print(f'Connected to: \nServer: {self.server}\nDatabase: {self.database}')
+            logging.info(f'\nConnection Successful \nServer: {self.server}\nDatabase: {self.database}')
+        except Exception as e:
+            Print('Unable to connect to Server: {self.sever]}')
+            logging.exception('Exception Occured')
 
         try:
             self.df = pd.DataFrame(statcast(start_dt=f'{date}',
@@ -766,7 +880,7 @@ class Statcast_DB():
             logging.exception("Exception occurred")
 
         self.df = self.df.replace({np.nan: None})
-        self.dct_parks = dict(zip(self.team_atts['Team'], self.team_atts[f'Ball_Park_{int(self.df['game_year'].loc[1])}']))
+        self.dct_parks = dict(zip(self.team_atts['Team'], self.team_atts[f'Ball_Park_{int(self.df.game_year.loc[1])}']))
 
         if self.df.empty:
             print(f'{date}: NO DATA FOR THIS DATE')
@@ -781,12 +895,12 @@ class Statcast_DB():
                 self.df.drop(['pitcher.1', 'fielder_2.1'],
                              axis=1,
                              inplace=True)
-                self.df.to_sql(f'testing_RAW_{int(self.df['game_year'].loc[1])}',
+                self.df.to_sql(f'raw_statcast_{int(self.df.game_year.loc[1])}',
                                self.engine,
                                index=False,
                                if_exists='append')
-                print(f'Completed: Raw data inserted into DB: STATCAST , TABLE: testing_RAW_{int(self.df[game_year].loc[1])}')
-                logging.info(f'{date}: Raw data inserted into DB: STATCAST , TABLE: testing_RAW_{int(self.df['game_year'].loc[1])}')
+                print(f'Completed: Raw data inserted into DB: STATCAST , TABLE: raw_statcast_{int(self.df.game_year.loc[1])}')
+                logging.info(f'{date}: Raw data inserted into DB: STATCAST , TABLE: raw_statcast_{int(self.df.game_year.loc[1])}')
             except Exception as e:
                 logging.exception("Exception occurred")
             try:
@@ -797,19 +911,22 @@ class Statcast_DB():
                 self.add_teams()
                 self.add_lg_div()
                 self.add_ballparks(self.df['Game_Year'][0])
+                self.stream_pos_bop_dct(date)
+                self.add_batter_pos()
+                self.add_batter_bop()
                 print(f'Completed: Data transformation')
                 logging.info(f'{date}: Data transformation complete')
             except:
                 logging.exception("Exception occurred")
 
             try:
-                self.df.to_sql(f'testing_WRK_{int(self.df['Game_Year'].loc[1])}',
+                self.df.to_sql(f'wrk_statcast_{int(self.df.Game_Year.loc[1])}',
                                self.engine,
                                index=False,
                                if_exists='append')
-                print(f'Completed: Working data inserted into DB: STATCAST , TABLE: testing_WRK_{int(self.df.Game_Year.loc[1])}\n')
+                print(f'Completed: Working data inserted into DB: STATCAST , TABLE: wrk_statcast_{int(self.df.Game_Year.loc[1])}\n')
                 logging.info(f'''{date}: Working data inserted into DB: STATCAST , TABLE:
-                              testing_WRK_{int(self.df['Game_Year'].loc[1])}\nTime Elapsed: {datetime.now() - startTime}''')
+                              wrk_statcast_{int(self.df.Game_Year.loc[1])}\nTime Elapsed: {datetime.now() - startTime}''')
             except Exception as e:
                 logging.exception("Exception occurred")
 
