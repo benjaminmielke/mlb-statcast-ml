@@ -13,10 +13,6 @@ home_score
 away_score
 bat_score
 fld_score
-post_home_score
-post_away_score
-post_bat_score
-post_fld_score
 inning
 inning_topbot
 outs_when_up
