@@ -483,10 +483,10 @@ class Statcast_DB():
                 lst_bat_team.append(self.df['Home_Team'][i])
                 lst_fld_team.append(self.df['Away_Team'][i])
 
-        self.df.insert(self.df.columns.get_loc('Bat_Score'),
+        self.df.insert(self.df.columns.get_loc('Home_Score'),
                        'Bat_Team',
                        lst_bat_team)
-        self.df.insert(self.df.columns.get_loc('Bat_Score'),
+        self.df.insert(self.df.columns.get_loc('Home_Score'),
                        'Fld_Team',
                        lst_fld_team)
 
@@ -513,16 +513,16 @@ class Statcast_DB():
         lst_fld_league = [self.dct_team_league.get(x, None) for x in self.df['Fld_Team']]
         lst_fld_division = [self.dct_team_division.get(x, None) for x in self.df['Fld_Team']]
 
-        self.df.insert(self.df.columns.get_loc('Bat_Score'),
+        self.df.insert(self.df.columns.get_loc('Home_Score'),
                        'Bat_Team_League',
                        lst_bat_league)
-        self.df.insert(self.df.columns.get_loc('Bat_Score'),
+        self.df.insert(self.df.columns.get_loc('Home_Score'),
                        'Bat_Team_Division',
                        lst_bat_division)
-        self.df.insert(self.df.columns.get_loc('Bat_Score'),
+        self.df.insert(self.df.columns.get_loc('Home_Score'),
                        'Fld_Team_League',
                        lst_fld_league)
-        self.df.insert(self.df.columns.get_loc('Bat_Score'),
+        self.df.insert(self.df.columns.get_loc('Home_Score'),
                        'Fld_Team_Division',
                        lst_fld_division)
 
@@ -606,6 +606,22 @@ class Statcast_DB():
         self.df.insert(self.df.columns.get_loc('Home_Team'),
                        'Batter_BOP',
                        lst_hitter_bop)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_post_scores(self):
+        lst_post_bat_score = []
+        for i in range(0, len(self.df['Gameday_Description'])):
+            if self.df['Gameday_Description'].iloc[i] is not None:
+                runs_scored = float(self.df['Gameday_Description'].iloc[i].count('score')) + float(self.df['Gameday_Description'].iloc[i].count('homer'))
+            else:
+                runs_scored = 0
+            lst_post_bat_score.append(float(self.df['Bat_Score'].iloc[i]) + runs_scored)
+
+        self.df.insert(self.df.columns.get_loc('Inning'),
+                       'Post_Bat_Score',
+                       lst_post_bat_score)
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -708,10 +724,133 @@ class Statcast_DB():
 
         return self.dct_pos, self.dct_bop
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_cnt_pa(self):
+        self.df['cnt_PA'] = np.select([
+            self.df['Result_Event'] == 'strikeout',
+            self.df['Result_Event'] == 'field_out',
+            self.df['Result_Event'] == 'grounded_into_double_play',
+            self.df['Result_Event'] == 'strikeout_double_play',
+            self.df['Result_Event'] == 'double_play',
+            self.df['Result_Event'] == 'force_out',
+            self.df['Result_Event'] == 'fielders_choice_out',
+            self.df['Result_Event'] == 'fielders_choice',
+            self.df['Result_Event'] == 'single',
+            self.df['Result_Event'] == 'double',
+            self.df['Result_Event'] == 'triple',
+            self.df['Result_Event'] == 'home_run',
+            self.df['Result_Event'] == 'hit_by_pitch',
+            self.df['Result_Event'] == 'walk',
+            self.df['Result_Event'] == 'field_error',
+            self.df['Result_Event'] == 'sac_fly',
+            self.df['Result_Event'] == 'sac_bunt',
+            self.df['Result_Event'] == 'interf_def'],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1], default=0)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_cnt_ab(self):
+        self.df['cnt_AB'] = np.select([
+            self.df['Result_Event'] == 'strikeout',
+            self.df['Result_Event'] == 'field_out',
+            self.df['Result_Event'] == 'grounded_into_double_play',
+            self.df['Result_Event'] == 'strikeout_double_play',
+            self.df['Result_Event'] == 'double_play',
+            self.df['Result_Event'] == 'force_out',
+            self.df['Result_Event'] == 'fielders_choice_out',
+            self.df['Result_Event'] == 'fielders_choice',
+            self.df['Result_Event'] == 'single',
+            self.df['Result_Event'] == 'double',
+            self.df['Result_Event'] == 'triple',
+            self.df['Result_Event'] == 'home_run'],
+            [1,1,1,1,1,1,1,1,1,1,1,1], default=0)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_cnt_hit(self):
+        self.df['cnt_Hit'] = np.select([
+            self.df['Result_Event'] == 'single',
+            self.df['Result_Event'] == 'double',
+            self.df['Result_Event'] == 'triple',
+            self.df['Result_Event'] == 'home_run'],
+            [1,1,1,1], default=0)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_cnt_single(self):
+        self.df['cnt_Single'] = np.select([
+            self.df['Result_Event'] == 'single'],
+            [1], default=0)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_cnt_double(self):
+        self.df['cnt_Double'] = np.select([
+            self.df['Result_Event'] == 'double'],
+            [1], default=0)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_cnt_triple(self):
+        self.df['cnt_Triple'] = np.select([
+            self.df['Result_Event'] == 'triple'],
+            [1], default=0)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_cnt_home_run(self):
+        self.df['cnt_Home_Run'] = np.select([
+            self.df['Result_Event'] == 'home_run'],
+            [1], default=0)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_cnt_k(self):
+        self.df['cnt_K'] = np.select([
+            (self.df['Result_Event'] == 'strikeout') & (self.df['Event_Description'] == 'called_strike')],
+            [1], default=0)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_cnt_backwardsk(self):
+        self.df['cnt_BackwardsK'] = np.select([
+            (self.df['Result_Event'] == 'strikeout') & (self.df['Event_Description'] == 'swinging_strike')],
+            [1], default=0)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_cnt_walk(self):
+        self.df['cnt_Walk'] = np.select([
+            self.df['Result_Event'] == 'walk'],
+            [1], default=0)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_cnt_hbp(self):
+        self.df['cnt_HBP'] = np.select([
+            self.df['Result_Event'] == 'hit_by_pitch'],
+            [1], default=0)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_cnt_rbi(self):
+        lst_cnt_rbi = []
+        for i in range(0, len(self.df)):
+            if self.df['Result_Event'][i] not in ['field_error', 'grounded_into_double_play', 'strikeout', 'strikeout_double_play', 'double_play']:
+                lst_cnt_rbi.append(self.df['Post_Bat_Score'][i] - self.df['Bat_Score'][i])
+            else:
+                lst_cnt_rbi.append(0)
+
+        self.df.insert(len(self.df.columns),
+                       'cnt_RBI',
+                       lst_cnt_rbi)
+
 
 # ------------------------------------------------------------------------------
 # ++++++++++++++Builder Method+++++++++++++++++++++++++++++++++++++++++++++++++
 # -----------------------------------------------------------------------------
+
     def build_db(self):
         '''Builds MLB Statcast tables within a pre-defined SQL database.
 
@@ -751,7 +890,7 @@ class Statcast_DB():
             logging.exception('Exception occured')
 
         lst_year = ['2016', '2017', '2018', '2019']
-        lst_month = ['03', '06']
+        lst_month = ['03', '09']
         lst_day_31 = ['01', '31']
         lst_day_30 = ['01','30']
 
@@ -763,8 +902,8 @@ class Statcast_DB():
 
 
         for y in range(0, len(lst_year)):
-            self.dct_pos = json.load(open(f'{self.parent_path}/dicts/dct_bop_{lst_year[y]}.txt'))
-            self.dct_bop = json.load(open(f'{self.parent_path}/dicts/dct_pos_{lst_year[y]}.txt'))
+            self.dct_pos = ujson.load(open(f'{self.parent_path}/dicts/dct_bop_{lst_year[y]}.txt'))
+            self.dct_bop = ujson.load(open(f'{self.parent_path}/dicts/dct_pos_{lst_year[y]}.txt'))
             self.dct_parks = dict(zip(self.team_atts['Team'], self.team_atts[f'Ball_Park_{lst_year[y]}']))
 
             for m in range(0, len(lst_month)):
@@ -793,7 +932,7 @@ class Statcast_DB():
                         logging.info(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: RAW data imported from Baseball Savant')
 
                         try:
-                            self.df.drop(['pitcher.1', 'fielder_2.1'],
+                            self.df.drop(['pitcher.1', 'fielder_2.1', 'post_away_score', 'post_home_score', 'post_bat_score', 'post_fld_score'],
                                          axis=1,
                                          inplace=True)
                             self.df.to_sql(f'raw_statcast_{lst_year[y]}',
@@ -815,6 +954,19 @@ class Statcast_DB():
                             self.add_ballparks(lst_year[y])
                             self.add_batter_pos()
                             self.add_batter_bop()
+                            self.add_post_scores()
+                            self.add_cnt_pa()
+                            self.add_cnt_ab()
+                            self.add_cnt_hit()
+                            self.add_cnt_single()
+                            self.add_cnt_double()
+                            self.add_cnt_triple()
+                            self.add_cnt_home_run()
+                            self.add_cnt_k()
+                            self.add_cnt_backwardsk()
+                            self.add_cnt_walk()
+                            self.add_cnt_hbp()
+                            self.add_cnt_rbi()
                             print(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: Data transformation complete')
                             logging.info(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: Data transformation complete')
                         except Exception as e:
