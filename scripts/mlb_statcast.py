@@ -609,6 +609,25 @@ class Statcast_DB():
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def add_batter_ss(self):
+        '''
+        Args:
+            No arguments
+
+        Returns:
+            Does not return a parameter
+
+        Raises:
+            No exceptions
+        '''
+
+        lst_hitter_ss = [self.dct_ss.get(batter, None) for batter in self.df['Batter_Name']]
+        self.df.insert(self.df.columns.get_loc('Home_Team'),
+                       'Batter_Sprint',
+                       lst_hitter_ss)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     def add_post_scores(self):
         lst_post_bat_score = []
         for i in range(0, len(self.df['Gameday_Description'])):
@@ -846,6 +865,18 @@ class Statcast_DB():
                        'cnt_RBI',
                        lst_cnt_rbi)
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def calc_yahoo_pnts(self, i):
+        pnts_b = (self.df['cnt_Single'].iloc[i]*2.6) + (self.df['cnt_Double'].iloc[i]*5.2) + (self.df['cnt_Triple'].iloc[i]*7.8) + (self.df['cnt_Home_Run'].iloc[i]*10.4) + (self.df['cnt_RBI'].iloc[i]*1.9) + (self.df['cnt_Walk'].iloc[i]*2.6) + (self.df['cnt_HBP'].iloc[i]*2.6)
+
+        return pnts_b
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_yahoo_pnts(self):
+        lst_yahoo_pnts_b = [self.calc_yahoo_pnts(i) for i in list(self.df.index.values)]
+        self.df.insert(len(self.df.columns), 'Yahoo_Pnts_Batter', lst_yahoo_pnts_b)
+
 
 # ------------------------------------------------------------------------------
 # ++++++++++++++Builder Method+++++++++++++++++++++++++++++++++++++++++++++++++
@@ -902,8 +933,9 @@ class Statcast_DB():
 
 
         for y in range(0, len(lst_year)):
-            self.dct_pos = ujson.load(open(f'{self.parent_path}/dicts/dct_bop_{lst_year[y]}.txt'))
-            self.dct_bop = ujson.load(open(f'{self.parent_path}/dicts/dct_pos_{lst_year[y]}.txt'))
+            self.dct_pos = ujson.load(open(f'{self.parent_path}/dicts/dct_pos_{lst_year[y]}.txt'))
+            self.dct_bop = ujson.load(open(f'{self.parent_path}/dicts/dct_bop_{lst_year[y]}.txt'))
+            self.dct_ss = ujson.load(open(f'{self.parent_path}/dicts/dct_ss_{lst_year[y]}.txt'))
             self.dct_parks = dict(zip(self.team_atts['Team'], self.team_atts[f'Ball_Park_{lst_year[y]}']))
 
             for m in range(0, len(lst_month)):
@@ -954,6 +986,7 @@ class Statcast_DB():
                             self.add_ballparks(lst_year[y])
                             self.add_batter_pos()
                             self.add_batter_bop()
+                            self.add_batter_ss()
                             self.add_post_scores()
                             self.add_cnt_pa()
                             self.add_cnt_ab()
@@ -967,6 +1000,8 @@ class Statcast_DB():
                             self.add_cnt_walk()
                             self.add_cnt_hbp()
                             self.add_cnt_rbi()
+                            self.add_yahoo_pnts()
+
                             print(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: Data transformation complete')
                             logging.info(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: Data transformation complete')
                         except Exception as e:
