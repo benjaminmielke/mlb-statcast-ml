@@ -1,4 +1,3 @@
-P_Index
 Game_Date
 Game_Year
 Game_ID

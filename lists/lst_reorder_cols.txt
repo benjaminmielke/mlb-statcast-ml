@@ -1,4 +1,3 @@
-index
 game_date
 game_year
 game_pk
