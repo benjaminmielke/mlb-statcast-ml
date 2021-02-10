@@ -11,6 +11,8 @@ import tkinter as tk
 import logging
 import ujson
 import yaml
+from bs4 import BeautifulSoup
+import requests
 
 
 class Statcast_DB():
@@ -49,7 +51,7 @@ class Statcast_DB():
                                      usecols=['MLBID', 'MLBNAME', 'BREFID', 'POS', 'PLAYERNAME'],
                                      dtype={'MLBID': 'category', 'MLBNAME': 'category'},
                                      skiprows=[2604+1])
-        self.dct_playerIDs = dict(zip(self.playerMap['MLBID'].astype(float), self.playerMap['MLBNAME']))
+        self.dct_playerIDs = dict(zip(self.playerMap['MLBID'], self.playerMap['MLBNAME']))
         self.team_atts = pd.read_csv(f'{self.parent_path}/csv/team_atts.csv')
         self.dct_team_league = dict(zip(self.team_atts['Team'], self.team_atts['League']))
         self.dct_team_division = dict(zip(self.team_atts['Team'], self.team_atts['Division']))
@@ -422,10 +424,28 @@ class Statcast_DB():
         Raises:
             No exceptions
         '''
+
         lst_batter_name = [self.dct_playerIDs.get(x, None) for x in self.df['Batter_ID']]
         self.df.insert(self.df.columns.get_loc('Pitcher_ID'),
                        'Batter_Name',
                        lst_batter_name)
+
+        # lst_batter_name = []
+        # for p in range(0, len(self.df['Batter_ID'])):
+        #     if self.df['Batter_ID'].iloc[p] in self.dct_playerIDs:
+        #         batter_name = self.dct_playerIDs.get(self.df['Batter_ID'].iloc[p], None)
+        #     else:
+        #         try:
+        #             batter_name = BeautifulSoup(requests.get(f'https://www.mlb.com/player/{self.df["Batter_ID"].iloc[p]}').content, 'html.parser').find_all('span', {'class': 'player-header--vitals-name'})[0].text.strip()
+        #         except IndexError:
+        #             logging.info(f'Player ID: {self.df["Batter_ID"][p]}: not found in playeridmap or mlb.com!')
+        #             continue
+        #
+        #     lst_batter_name.append(batter_name)
+        #
+        # self.df.insert(self.df.columns.get_loc('Pitcher_ID'),
+        #                'Batter_Name',
+        #                lst_batter_name)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -877,6 +897,30 @@ class Statcast_DB():
         lst_yahoo_pnts_b = [self.calc_yahoo_pnts(i) for i in list(self.df.index.values)]
         self.df.insert(len(self.df.columns), 'Yahoo_Pnts_Batter', lst_yahoo_pnts_b)
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def add_pitcher_type(self):
+        self.df.insert(self.df.columns.get_loc('Pitcher_Hand'), 'Pitcher_Type', None)
+        self.df.set_index('Game_ID',
+                          inplace=True,
+                          drop=True)
+        self.df.sort_values(axis=0,
+                            by=['Game_ID', 'PA_Num', 'Pitch_Num'],
+                            ascending=[False, True, True],
+                            inplace=True)
+        lst_gameids = self.df.index.unique()
+        for i in range(0, len(lst_gameids)):
+            lst_game_pitcher = list(self.df.loc[lst_gameids[i], 'Pitcher_Name'].unique())
+            lst_pitcher_pos = list(self.df.loc[lst_gameids[i]]['Pitcher_Type'].values)
+
+            for p in range(0, len(self.df.loc[lst_gameids[i], 'Pitcher_Name'])):
+                if self.df.loc[lst_gameids[i], 'Pitcher_Name'].values[p] in [lst_game_pitcher[0], lst_game_pitcher[1]]:
+                    lst_pitcher_pos[p] = 'SP'
+                else:
+                    lst_pitcher_pos[p] = 'RP'
+
+            self.df.loc[lst_gameids[i], 'Pitcher_Type'] = lst_pitcher_pos
+
 
 # ------------------------------------------------------------------------------
 # ++++++++++++++Builder Method+++++++++++++++++++++++++++++++++++++++++++++++++
@@ -952,6 +996,7 @@ class Statcast_DB():
                         logging.exception("Exception occurred")
 
                     self.df = self.df.replace({np.nan: None})
+                    self.df = self.df.astype({'batter': 'int32'})
 
                     if self.df.empty:
                         print(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: NO DATA FOR THIS DATE')
@@ -964,7 +1009,7 @@ class Statcast_DB():
                         logging.info(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: RAW data imported from Baseball Savant')
 
                         try:
-                            self.df.drop(['pitcher.1', 'fielder_2.1', 'post_away_score', 'post_home_score', 'post_bat_score', 'post_fld_score'],
+                            self.df.drop(['index', 'pitcher.1', 'fielder_2.1', 'post_away_score', 'post_home_score', 'post_bat_score', 'post_fld_score'],
                                          axis=1,
                                          inplace=True)
                             self.df.to_sql(f'raw_statcast_{lst_year[y]}',
@@ -1001,6 +1046,7 @@ class Statcast_DB():
                             self.add_cnt_hbp()
                             self.add_cnt_rbi()
                             self.add_yahoo_pnts()
+                            self.add_pitcher_type()
 
                             print(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: Data transformation complete')
                             logging.info(f'{lst_year[y]}-{lst_month[m]}-{lst_day[d]}: Data transformation complete')
@@ -1008,9 +1054,10 @@ class Statcast_DB():
                             logging.exception('Exception Occured')
 
                         try:
+                            # self.df.reset_index(inplace=True)
                             self.df.to_sql(f'wrk_statcast_{lst_year[y]}',
                                            self.engine,
-                                           index=False,
+                                           index=True,
                                            if_exists='append')
                             print(f'Completed: Working data inserted into DB: STATCAST , TABLE: wrk_statcast_{lst_year[y]}')
                             print(f'Time Elapsed: {datetime.now() - startTime}\n')

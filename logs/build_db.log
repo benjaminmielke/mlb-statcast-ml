@@ -1,0 +1,7 @@
+04-Feb-21 00:03:07 - INFO - Connected to: 
+Server: localhost
+Database: statcast
+04-Feb-21 00:03:08 - WARNING - 2016-03-01: NO DATA FOR THIS DATE
+04-Feb-21 00:03:08 - WARNING - 2016-03-31: NO DATA FOR THIS DATE
+04-Feb-21 00:03:09 - INFO - 2016-09-01: RAW data imported from Baseball Savant
+04-Feb-21 00:03:10 - INFO - 2016-09-01: Raw data inserted into DB: STATCAST , TABLE: raw_statcast_2016

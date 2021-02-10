@@ -5,4 +5,4 @@ from mlb_statcast import Statcast_DB
 
 statcast = Statcast_DB()
 
-statcast.run_stream('2019-06-03')
+statcast.stream_data('2019-09-29')

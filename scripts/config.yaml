@@ -1,10 +1,18 @@
 
 
-- Database:
-    db_type: mssql+pyodbc
+- Database_System:
+    db_type: mysql
+
+- DB_MSSQL:
     driver: '{SQL SERVER}'
     server: DESKTOP-BMEMTUQ\SQLEXPRESS
     database: STATCAST
 
+- DB_MySQL:
+    username: root
+    password: Hh6994hh!
+    server: localhost
+    database: statcast
+
 - Paths:
-    parent_path: C:/Users/okiem/OneDrive/Desktop/The_Project_Folder/mlb-statcast-ml
+    parent_path: C:/Users/okiem/github/mlb-statcast-ml

@@ -1,0 +1,13 @@
+27-Jan-21 10:44:34 - INFO - 
+Connection Successful 
+Server: localhost
+Database: statcast
+27-Jan-21 10:44:36 - INFO - 2019-09-29: RAW data imported from Baseball Savant
+27-Jan-21 10:44:38 - INFO - 2019-09-29: Raw data inserted into DB: STATCAST , TABLE: raw_statcast_2019
+27-Jan-21 10:44:46 - INFO - NumExpr defaulting to 8 threads.
+27-Jan-21 11:06:06 - INFO - 2019-09-29: Data transformation complete
+27-Jan-21 11:06:08 - INFO - 2019-09-29: Working data inserted into DB: STATCAST , TABLE:
+                              wrk_statcast_2019
+Time Elapsed: 0:21:34.315136
+27-Jan-21 11:06:08 - INFO - --------2019-09-29 Complete--------
+Total Time Elapsed: 0:21:34.316126
